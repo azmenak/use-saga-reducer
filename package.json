@@ -1,0 +1,67 @@
+{
+  "name": "use-saga-reducer",
+  "version": "3.4.1",
+  "description": "Use redux-saga without redux",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/azmenak/use-saga-reducer"
+  },
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [
+    "react",
+    "hook",
+    "hooks",
+    "async",
+    "reducer",
+    "typescript",
+    "esm",
+    "pika",
+    "sagas",
+    "redux-saga",
+    "generators",
+    "useReducer"
+  ],
+  "author": "Adam Zmenak <adam.zmenak@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@pika/plugin-build-node": "^0.6.0",
+    "@pika/plugin-build-web": "^0.6.0",
+    "@pika/plugin-ts-standard-pkg": "^0.6.0",
+    "@pika/types": "^0.6.0",
+    "@testing-library/react-hooks": "^2.0.1",
+    "@types/jest": "^24.0.18",
+    "@types/react": "^16.9.2",
+    "jest": "^24.9.0",
+    "react": ">=16.9.0",
+    "react-dom": "^16.9.0",
+    "react-test-renderer": "^16.9.0",
+    "ts-jest": "^24.0.2"
+  },
+  "peerDependencies": {
+    "react": ">=16.9.0"
+  },
+  "@pika/pack": {
+    "pipeline": [
+      [
+        "@pika/plugin-ts-standard-pkg",
+        {
+          "exclude": [
+            "*.spec.*"
+          ]
+        }
+      ],
+      [
+        "@pika/plugin-build-node"
+      ],
+      [
+        "@pika/plugin-build-web"
+      ]
+    ]
+  },
+  "dependencies": {
+    "@testing-library/react": "^9.1.4",
+    "typescript": "^3.6.2"
+  }
+}
