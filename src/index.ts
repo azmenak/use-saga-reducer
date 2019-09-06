@@ -16,49 +16,27 @@ type SagaIOKeys = keyof Pick<
 >
 type ExposedRunSagaOptions<A, S> = Omit<RunSagaOptions<A, S>, SagaIOKeys>
 
-interface UseSagaReducerStateOptions<S> {
-  initialState: S
-}
-
-interface UseSagaReducerInitializeWithArgsOptions<
+export function useSagaReducer<
+  S extends Saga<never[]>,
   R extends Reducer<any, any>,
   I
-> {
-  initializerArg: I
-  initializer: (arg: I) => ReducerState<R>
-}
-interface UseSagaReducerInitializeWithoutArgsOptions<
-  R extends Reducer<any, any>
-> {
-  initializer: () => ReducerState<R>
-}
-
-export type UseSagaReducerReducerOptions<R extends Reducer<any, any>, I> =
-  | UseSagaReducerStateOptions<R>
-  | UseSagaReducerInitializeWithArgsOptions<R, I>
-  | UseSagaReducerInitializeWithoutArgsOptions<R>
-  | {}
-
-export type UseSagaReducerOptions<
-  R extends Reducer<any, any>,
-  I
-> = UseSagaReducerReducerOptions<R, I> & ExposedRunSagaOptions<any, any>
-
-export function useSagaReducer<S extends Saga, R extends Reducer<any, any>, I>(
+>(
   saga: S,
   reducer: R,
-  options: UseSagaReducerOptions<R, I> = {}
+  initializerArg?: I,
+  initializer?: (arg: I) => ReducerState<R>,
+  runSagaOptions?: ExposedRunSagaOptions<any, S>
 ): [ReducerState<R>, Dispatch<ReducerAction<R>>] {
   const [state, reactDispatch] = useReducer(
     reducer,
-    // @ts-ignore
-    options.initialState || options.initializerArg,
-    // @ts-ignore
-    options.initializer
+    initializerArg as any,
+    initializer as any
   )
 
   const stateRef = useRef(state)
-  const sagaIO: Pick<RunSagaOptions<any, any>, SagaIOKeys> = useMemo(() => {
+  const sagaIO: Required<
+    Pick<RunSagaOptions<any, S>, SagaIOKeys>
+  > = useMemo(() => {
     const channel = stdChannel()
     const dispatch = (action: ReducerAction<R>) => {
       setImmediate(channel.put, action)
@@ -74,6 +52,7 @@ export function useSagaReducer<S extends Saga, R extends Reducer<any, any>, I>(
   }, [])
 
   useEffect(() => {
+    const options = runSagaOptions || {}
     const sagaOptions: RunSagaOptions<any, any> = {
       ...sagaIO,
       sagaMonitor: options.sagaMonitor,
@@ -82,12 +61,12 @@ export function useSagaReducer<S extends Saga, R extends Reducer<any, any>, I>(
       effectMiddlewares: options.effectMiddlewares
     }
 
-    const task = runSaga(sagaOptions, saga)
+    const task = runSaga<any, any, any>(sagaOptions, saga)
 
     return () => {
       task.cancel()
     }
-  })
+  }, [])
 
   return [state, sagaIO.dispatch]
 }
