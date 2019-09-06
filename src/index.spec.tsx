@@ -2,7 +2,7 @@ import * as React from 'react'
 
 import {takeEvery, put, select, delay} from 'redux-saga/effects'
 import {render, fireEvent, act} from '@testing-library/react'
-import {useSagaReducer} from '.'
+import useSagaReducer from '.'
 
 function flushPromiseQueue() {
   return new Promise((resolve) => {

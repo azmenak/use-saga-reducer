@@ -70,3 +70,5 @@ export function useSagaReducer<
 
   return [state, sagaIO.dispatch]
 }
+
+export default useSagaReducer
