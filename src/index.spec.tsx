@@ -1,11 +1,18 @@
-import * as React from 'react'
+import React from 'react'
 
-import {takeEvery, put, select, delay} from 'redux-saga/effects'
+import {
+  takeEvery,
+  put,
+  select,
+  delay,
+  getContext,
+  setContext
+} from 'redux-saga/effects'
 import {render, fireEvent, act} from '@testing-library/react'
-import useSagaReducer from '.'
+import useSagaReducer, {SagaProvider} from '.'
 
 function flushPromiseQueue() {
-  return new Promise((resolve) => {
+  return new Promise<undefined>((resolve) => {
     setTimeout(() => {
       resolve()
     }, 0)
@@ -91,8 +98,84 @@ describe('useSagaReducer()', () => {
 
     expect(el.textContent).toBe('1')
 
-    await act(async () => {})
+    await act(flushPromiseQueue)
 
     expect(el.textContent).toBe('2')
+  })
+
+  it('provides context values in sagas passed to provider', async () => {
+    const testReducer = jest.fn((state = {}, action: any) => {
+      return state
+    })
+
+    function* updateContextValue({payload}: {type: string; payload: string}) {
+      yield setContext({foo: payload})
+      const contextValue = yield getContext('foo')
+      yield put({
+        type: 'CONTEXT_VALUE',
+        payload: contextValue
+      })
+    }
+
+    function* testSaga() {
+      const contextValue = yield getContext('foo')
+      yield put({
+        type: 'CONTEXT_VALUE',
+        payload: contextValue
+      })
+      yield takeEvery('UPDATE_CONTEXT', updateContextValue)
+    }
+
+    const globalState = {foo: 'bar'}
+
+    function TestApp() {
+      return (
+        <SagaProvider value={globalState}>
+          <TestUseSagaReducer />
+        </SagaProvider>
+      )
+    }
+
+    function TestUseSagaReducer() {
+      const [, dispatch] = useSagaReducer(testSaga, testReducer, {})
+      return (
+        <div>
+          <button
+            data-testid='button'
+            onClick={() => {
+              dispatch({
+                type: 'UPDATE_CONTEXT',
+                payload: 'baz'
+              })
+            }}
+          >
+            TEST
+          </button>
+        </div>
+      )
+    }
+
+    const {getByTestId} = render(<TestApp />)
+    const button = getByTestId('button')
+
+    expect(testReducer).toHaveBeenCalledWith(
+      {},
+      {type: 'CONTEXT_VALUE', payload: 'bar'}
+    )
+
+    fireEvent.click(button)
+
+    await flushPromiseQueue()
+
+    expect(testReducer).toHaveBeenNthCalledWith(
+      2,
+      {},
+      {type: 'UPDATE_CONTEXT', payload: 'baz'}
+    )
+    expect(testReducer).toHaveBeenNthCalledWith(
+      3,
+      {},
+      {type: 'CONTEXT_VALUE', payload: 'baz'}
+    )
   })
 })

@@ -1,12 +1,14 @@
-import {
+import React, {
   useReducer,
   useRef,
   useMemo,
   useEffect,
+  useContext,
   Reducer,
   ReducerState,
   ReducerAction,
-  Dispatch
+  Dispatch,
+  createContext
 } from 'react'
 import {runSaga, stdChannel, Saga, RunSagaOptions} from 'redux-saga'
 
@@ -15,6 +17,16 @@ type SagaIOKeys = keyof Pick<
   'channel' | 'dispatch' | 'getState'
 >
 type ExposedRunSagaOptions<A, S> = Omit<RunSagaOptions<A, S>, SagaIOKeys>
+
+interface SagaProdiderProps {
+  value: object
+}
+
+const SagaContext = createContext<object>({})
+
+export const SagaProvider: React.FC<SagaProdiderProps> = (props) => {
+  return <SagaContext.Provider {...props} />
+}
 
 export function useSagaReducer<
   S extends Saga<never[]>,
@@ -34,9 +46,10 @@ export function useSagaReducer<
   )
 
   const stateRef = useRef(state)
-  const sagaIO: Required<
-    Pick<RunSagaOptions<any, S>, SagaIOKeys>
-  > = useMemo(() => {
+  const sagaIO: Required<Pick<
+    RunSagaOptions<any, S>,
+    SagaIOKeys
+  >> = useMemo(() => {
     const channel = stdChannel()
     const dispatch = (action: ReducerAction<R>) => {
       setImmediate(channel.put, action)
@@ -51,13 +64,19 @@ export function useSagaReducer<
     }
   }, [])
 
+  const sagaContextValue = useContext(SagaContext)
+
   useEffect(() => {
     const options = runSagaOptions || {}
+    const context = {
+      ...sagaContextValue,
+      ...options.context
+    }
     const sagaOptions: RunSagaOptions<any, any> = {
       ...sagaIO,
+      context,
       sagaMonitor: options.sagaMonitor,
       onError: options.onError,
-      context: options.context,
       effectMiddlewares: options.effectMiddlewares
     }
 
