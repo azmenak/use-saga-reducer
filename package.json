@@ -7,7 +7,8 @@
     "url": "https://github.com/azmenak/use-saga-reducer"
   },
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "version": "npx @pika/pack"
   },
   "keywords": [
     "react",
