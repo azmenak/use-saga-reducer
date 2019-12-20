@@ -4,6 +4,7 @@ import React, {
   useMemo,
   useEffect,
   useContext,
+  useLayoutEffect,
   Reducer,
   ReducerState,
   ReducerAction,
@@ -28,6 +29,9 @@ export const SagaProvider: React.FC<SagaProdiderProps> = (props) => {
   return <SagaContext.Provider {...props} />
 }
 
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? useLayoutEffect : useEffect
+
 export function useSagaReducer<
   S extends Saga<never[]>,
   R extends Reducer<any, any>,
@@ -46,6 +50,10 @@ export function useSagaReducer<
   )
 
   const stateRef = useRef(state)
+  useIsomorphicLayoutEffect(() => {
+    stateRef.current = state
+  }, [state])
+
   const sagaIO: Required<Pick<
     RunSagaOptions<any, S>,
     SagaIOKeys
