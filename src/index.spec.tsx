@@ -103,6 +103,60 @@ describe('useSagaReducer()', () => {
     expect(el.textContent).toBe('2')
   })
 
+  it('saga updates the state available to yield select()', async () => {
+    let testState: any
+    const testReducer = jest.fn((state = {}, action: any) => {
+      if (action.type === 'INCREMENT') {
+        return {
+          count: state.count + 1
+        }
+      }
+
+      return state
+    })
+
+    function* increment() {
+      const state = yield select()
+      testState = state
+    }
+
+    function* testSaga() {
+      yield takeEvery('INCREMENT', increment)
+    }
+
+    function TestUseSagaReducer() {
+      const [, dispatch] = useSagaReducer(testSaga, testReducer, {count: 1})
+
+      return (
+        <div>
+          <button
+            data-testid='button'
+            onClick={() => {
+              dispatch({
+                type: 'INCREMENT'
+              })
+            }}
+          >
+            TEST
+          </button>
+        </div>
+      )
+    }
+
+    const {getByTestId} = render(<TestUseSagaReducer />)
+    const button = getByTestId('button')
+
+    fireEvent.click(button)
+    await act(flushPromiseQueue)
+
+    expect(testState).toEqual({count: 2})
+
+    fireEvent.click(button)
+    await act(flushPromiseQueue)
+
+    expect(testState).toEqual({count: 3})
+  })
+
   it('provides context values in sagas passed to provider', async () => {
     const testReducer = jest.fn((state = {}, action: any) => {
       return state
