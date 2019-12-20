@@ -4,7 +4,6 @@ import React, {
   useMemo,
   useEffect,
   useContext,
-  useLayoutEffect,
   Reducer,
   ReducerState,
   ReducerAction,
@@ -29,9 +28,6 @@ export const SagaProvider: React.FC<SagaProdiderProps> = (props) => {
   return <SagaContext.Provider {...props} />
 }
 
-const useIsomorphicLayoutEffect =
-  typeof window !== 'undefined' ? useLayoutEffect : useEffect
-
 export function useSagaReducer<
   S extends Saga<never[]>,
   R extends Reducer<any, any>,
@@ -50,7 +46,7 @@ export function useSagaReducer<
   )
 
   const stateRef = useRef(state)
-  useIsomorphicLayoutEffect(() => {
+  useEffect(() => {
     stateRef.current = state
   }, [state])
 
@@ -60,8 +56,10 @@ export function useSagaReducer<
   >> = useMemo(() => {
     const channel = stdChannel()
     const dispatch = (action: ReducerAction<R>) => {
-      setImmediate(channel.put, action)
       reactDispatch(action)
+      Promise.resolve().then(() => {
+        channel.put(action)
+      })
     }
     const getState = () => stateRef.current
 
