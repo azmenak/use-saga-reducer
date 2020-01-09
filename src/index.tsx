@@ -198,14 +198,20 @@ export function useSagaReducer<
   )
 
   const stateRef = useRef(state)
+  useEffect(() => {
+    stateRef.current = state
+  }, [state])
+
   const sagaIO: Required<Pick<
     RunSagaOptions<any, S>,
     SagaIOKeys
   >> = useMemo(() => {
     const channel = stdChannel()
     const dispatch = (action: ReducerAction<R>) => {
-      setImmediate(channel.put, action)
       reactDispatch(action)
+      Promise.resolve().then(() => {
+        channel.put(action)
+      })
     }
     const getState = () => stateRef.current
 

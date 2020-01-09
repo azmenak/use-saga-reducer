@@ -1,6 +1,6 @@
 {
   "name": "use-saga-reducer",
-  "version": "3.0.0",
+  "version": "2.0.0",
   "description": "Use redux-saga without redux",
   "repository": {
     "type": "git",
