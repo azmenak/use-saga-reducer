@@ -130,7 +130,7 @@ describe('useSagaReducer()', () => {
 
     function TestApp() {
       return (
-        <SagaProvider value={globalState}>
+        <SagaProvider context={globalState}>
           <TestUseSagaReducer />
         </SagaProvider>
       )
