@@ -27,6 +27,7 @@
   "author": "Adam Zmenak <adam.zmenak@gmail.com>",
   "license": "MIT",
   "devDependencies": {
+    "@pika/pack": "^0.5.0",
     "@pika/plugin-build-node": "^0.8.1",
     "@pika/plugin-build-web": "^0.8.1",
     "@pika/plugin-ts-standard-pkg": "^0.8.1",
@@ -64,9 +65,5 @@
         "@pika/plugin-build-web"
       ]
     ]
-  },
-  "dependencies": {
-    "@pika/pack": "^0.5.0",
-    "react-test-render": "^1.1.2"
   }
 }
