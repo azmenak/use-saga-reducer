@@ -6,10 +6,13 @@ import {
   select,
   delay,
   getContext,
-  setContext
+  setContext,
+  spawn
 } from 'redux-saga/effects'
+import {SagaMonitor} from 'redux-saga'
 import {render, fireEvent, act} from '@testing-library/react'
-import useSagaReducer, {SagaProvider} from '.'
+
+import useSagaReducer, {SagaProvider, makeCustomEffect} from '.'
 
 function flushPromiseQueue() {
   return new Promise<undefined>((resolve) => {
@@ -177,5 +180,156 @@ describe('useSagaReducer()', () => {
       {},
       {type: 'CONTEXT_VALUE', payload: 'baz'}
     )
+  })
+
+  it('calls sagaMonitor, onError, and effectMiddlewares from context', async () => {
+    const testReducer = jest.fn((state = {}, action: any) => {
+      return state
+    })
+
+    function* errorThrower() {
+      throw new Error('Happy Test')
+    }
+
+    function* testErrorSaga() {
+      yield takeEvery('TEST_ERROR', errorThrower)
+    }
+
+    function* testSaga() {
+      yield put({
+        type: 'TEST_INIT',
+        payload: 'TEST'
+      })
+      yield spawn(testErrorSaga)
+    }
+
+    const testMonior: SagaMonitor = {
+      effectTriggered: jest.fn()
+    }
+
+    const testOnError = jest.fn()
+
+    const testIntercept = jest.fn()
+    const testEffectMiddleware = jest.fn((next) => (effect: any) => {
+      testIntercept(effect)
+      return next(effect)
+    })
+
+    function TestApp() {
+      return (
+        <SagaProvider
+          sagaMonitor={testMonior}
+          onError={testOnError}
+          effectMiddlewares={[testEffectMiddleware]}
+        >
+          <TestUseSagaReducer />
+        </SagaProvider>
+      )
+    }
+
+    function TestUseSagaReducer() {
+      const [, dispatch] = useSagaReducer(testSaga, testReducer, {})
+      return (
+        <div>
+          <button
+            data-testid='button'
+            onClick={() => {
+              dispatch({
+                type: 'TEST_ERROR'
+              })
+            }}
+          >
+            TEST
+          </button>
+        </div>
+      )
+    }
+
+    const {getByTestId} = render(<TestApp />)
+    const button = getByTestId('button')
+
+    // Distpaches
+    // - init
+    // - spawn
+    // - takeEvery (take effects inside a spawned process dispatch twice)
+    expect(testMonior.effectTriggered).toHaveBeenCalledTimes(4)
+    expect(testOnError).not.toHaveBeenCalled()
+    expect(testIntercept).toHaveBeenCalledTimes(4)
+
+    fireEvent.click(button)
+
+    await flushPromiseQueue()
+
+    expect(testMonior.effectTriggered).toHaveBeenCalledTimes(5)
+    expect(testOnError).toHaveBeenCalledTimes(1)
+    expect(testIntercept).toHaveBeenCalledTimes(5)
+  })
+
+  it('supports yield-ing to custom effects', async () => {
+    const testReducer = jest.fn((state = {}, action: any) => {
+      return state
+    })
+
+    function testPut(action: object) {
+      return makeCustomEffect('TEST_PUT', {action})
+    }
+
+    function* testSaga() {
+      yield put({
+        type: 'TEST_INIT',
+        payload: 'TEST'
+      })
+      yield testPut({
+        type: 'TEST_TEST_PUT'
+      })
+    }
+
+    let testPutCount = 0
+    const testMonior: SagaMonitor = {
+      effectTriggered: jest.fn((options) => {
+        if (options.effect.type === 'TEST_PUT') {
+          testPutCount += 1
+        }
+      })
+    }
+
+    function TestApp() {
+      return (
+        <SagaProvider sagaMonitor={testMonior}>
+          <TestUseSagaReducer />
+        </SagaProvider>
+      )
+    }
+
+    function TestUseSagaReducer() {
+      const [, dispatch] = useSagaReducer(testSaga, testReducer, {})
+      return (
+        <div>
+          <button
+            data-testid='button'
+            onClick={() => {
+              dispatch({
+                type: 'TEST_TEST_PUT'
+              })
+            }}
+          >
+            TEST
+          </button>
+        </div>
+      )
+    }
+
+    const {getByTestId} = render(<TestApp />)
+    const button = getByTestId('button')
+
+    expect(testMonior.effectTriggered).toHaveBeenCalledTimes(2)
+    expect(testPutCount).toBe(1)
+
+    fireEvent.click(button)
+
+    await flushPromiseQueue()
+
+    expect(testMonior.effectTriggered).toHaveBeenCalledTimes(2)
+    expect(testPutCount).toBe(1)
   })
 })

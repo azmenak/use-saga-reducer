@@ -251,4 +251,18 @@ export function useSagaReducer<
   return [state, sagaIO.dispatch]
 }
 
+/**
+ * Helper function to create custom redux-saga effects
+ * @param type unique type string
+ * @param payload any object
+ */
+export function makeCustomEffect(type: string, payload: object) {
+  return {
+    '@@redux-saga/custom': true,
+    combinator: false,
+    type,
+    payload
+  }
+}
+
 export default useSagaReducer
