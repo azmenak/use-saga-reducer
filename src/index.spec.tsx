@@ -424,4 +424,47 @@ describe('useSagaReducer()', () => {
     expect(testMonior.effectTriggered).toHaveBeenCalledTimes(2)
     expect(testPutCount).toBe(1)
   })
+
+  it('supports yield-ing to custom effects with middleware', async () => {
+    const testReducer = jest.fn((state = {}, action: any) => {
+      return state
+    })
+
+    function testSelect(value: object) {
+      return makeCustomEffect('TEST_SELECT', {value})
+    }
+
+    const testRecorder = jest.fn()
+
+    function* testSaga() {
+      const value = yield testSelect({foo: 'bar'})
+      testRecorder(value)
+    }
+
+    const testSelectMiddleware = (next: any) => (effect: any) => {
+      if (effect.type === 'TEST_SELECT') {
+        next(effect.payload.value)
+        return
+      }
+
+      next(effect)
+    }
+
+    function TestApp() {
+      return (
+        <SagaProvider effectMiddlewares={[testSelectMiddleware]}>
+          <TestUseSagaReducer />
+        </SagaProvider>
+      )
+    }
+
+    function TestUseSagaReducer() {
+      const [,] = useSagaReducer(testSaga, testReducer, {})
+      return <div />
+    }
+
+    render(<TestApp />)
+
+    expect(testRecorder).toHaveBeenCalledWith({foo: 'bar'})
+  })
 })
